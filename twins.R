@@ -82,6 +82,7 @@ fit <- lm(age_at_test ~ GP1 + GP2 + GP4 + GP5 + GP6 + GP7 + GP8 + GP9 + GP10 + G
 summary(fit) # show results
 
 # Make some summary plots
+unique(twins_data_glycomics$PublicID)
 
 chart.Correlation(twins_data_gly_dob[70:77]) # subset of the data for purposes of visualisation
 
@@ -205,41 +206,6 @@ abline(fit1)
 plot(age_at_test ~ m34400, data=twins_data_met_dob)
 fit1 <- lm(age_at_test ~ m34400, data=twins_data_met_dob)
 abline(fit1)
-plot(age_at_test ~ m38296, data=twins_data_met_dob)
-fit1 <- lm(age_at_test ~ m38296, data=twins_data_met_dob)
-abline(fit1)
-plot(age_at_test ~ m33821, data=twins_data_met_dob)
-fit1 <- lm(age_at_test ~ m33821, data=twins_data_met_dob)
-abline(fit1)
-plot(age_at_test ~ m44630, data=twins_data_met_dob)
-fit1 <- lm(age_at_test ~ m44630, data=twins_data_met_dob)
-abline(fit1)
-plot(age_at_test ~ m33822, data=twins_data_met_dob)
-fit1 <- lm(age_at_test ~ m33822, data=twins_data_met_dob)
-abline(fit1)
-plot(age_at_test ~ m52499, data=twins_data_met_dob)
-fit1 <- lm(age_at_test ~ m52499, data=twins_data_met_dob)
-abline(fit1)
-plot(age_at_test ~ m48258, data=twins_data_met_dob)
-fit1 <- lm(age_at_test ~ m48258, data=twins_data_met_dob)
-abline(fit1)
-plot(age_at_test ~ m35628, data=twins_data_met_dob)
-fit1 <- lm(age_at_test ~ m35628, data=twins_data_met_dob)
-abline(fit1)
-plot(age_at_test ~ m52616, data=twins_data_met_dob)
-fit1 <- lm(age_at_test ~ m52616, data=twins_data_met_dob)
-abline(fit1)
-plot(age_at_test ~ m46203, data=twins_data_met_dob)
-fit1 <- lm(age_at_test ~ m46203, data=twins_data_met_dob)
-abline(fit1)
-plot(age_at_test ~ m52281, data=twins_data_met_dob)
-fit1 <- lm(age_at_test ~ m33821, data=twins_data_met_dob)
-abline(fit1)
-plot(age_at_test ~ m47118, data=twins_data_met_dob)
-fit1 <- lm(age_at_test ~ m33821, data=twins_data_met_dob)
-abline(fit1)
-
-abline(fit_met)
 
 # Other useful functions 
 coefficients(fit_met) # model coefficients
@@ -335,6 +301,7 @@ ks.test(gly$value, y = pnorm)
 # since that is what is assumed in the modeling theory.
 
 # Overlapping density histograms methods
+
 # Glycomics
 ggplot(gly, aes(x=value, fill=variable)) + theme_minimal() + 
   geom_density(alpha = 0.1, binwidth=0.05) +
@@ -430,8 +397,6 @@ model_rf <- caret::train(YEAR_BIRTH ~ .,
                                                   savePredictions = TRUE, 
                                                   verboseIter = FALSE))
 
-??caret::train
-
 model_rf_smol_gly <- caret::train(age_at_test ~ .,
                                   data = twins_data_gly_dob,
                                   method = "rf",
@@ -453,8 +418,6 @@ model_rf_smol_gly_ntree10 <- caret::train(as.factor(age_at_test) ~ .,
                                                                    savePredictions = TRUE, 
                                                                    verboseIter = FALSE))
 
-View(model_rf_smol_gly)
-
 # Plotting the random forest trees
 
 tree_func <- function(final_model, tree_num) {
@@ -467,8 +430,10 @@ tree_func <- function(final_model, tree_num) {
     mutate(`split point` = ifelse(is.na(prediction), `split point`, NA))
   
   # prepare data frame for graph
-  graph_frame <- data.frame(from = rep(tree$rowname, 2),
-                            to = c(tree$`left daughter`, tree$`right daughter`))
+  graph_frame <- data.frame(
+    from = rep(tree$rowname, 2),
+    to = c(tree$`left daughter`, tree$`right daughter`)
+    )
   
   # convert to graph and delete the last node that we don't want to plot
   graph <- graph_from_data_frame(graph_frame) %>%
