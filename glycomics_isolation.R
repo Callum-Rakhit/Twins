@@ -9,7 +9,7 @@ GetPackages <- function(required.packages) {
     required.packages[!(required.packages %in% installed.packages()[, "Package"])]
   if(length(packages.not.installed)){
     install.packages(packages.not.installed, dependencies = T)}
-  suppressMessages(lapply(required.packages, require, character.only = TRUE))
+  suppressMessages(lapply(required.packages, require, character.only = T))
 }
 
 GetPackages(c("tidyverse", "randomForest", "dplyr", "igraph", "caret", "reshape", "reshape2", "devtools", "PerformanceAnalytics", 
@@ -27,8 +27,8 @@ count(
   merge(
     as.data.frame(sort(unique(twins_data_glycomics$PublicID))),
     as.data.frame(sort(unique(twins_data_metabolomics$PublicID))),
-    by.x='sort(unique(twins_data_glycomics$PublicID))', 
-    by.y='sort(unique(twins_data_metabolomics$PublicID))'
+    by.x = 'sort(unique(twins_data_glycomics$PublicID))', 
+    by.y = 'sort(unique(twins_data_metabolomics$PublicID))'
   )
 )
 
@@ -91,19 +91,19 @@ corrplot(cor(twins_data_gly_dob[60:77]), method = "color", col = col(200), # sub
          diag = FALSE)
 
 # Plotting a couple of predictors for closer inspection
-plot(age_at_test ~ IGP33, data=twins_data_gly_dob)
-fit_IG33 <- lm(age_at_test ~ IGP33, data=twins_data_gly_dob)
+plot(age_at_test ~ IGP33, data = twins_data_gly_dob)
+fit_IG33 <- lm(age_at_test ~ IGP33, data = twins_data_gly_dob)
 abline(fit_IG33)
 summary(fit_IG33)
 
-plot(age_at_test ~ IGP55, data=twins_data_gly_dob)
-fit_IG55 <- lm(age_at_test ~ IGP55, data=twins_data_gly_dob)
+plot(age_at_test ~ IGP55, data = twins_data_gly_dob)
+fit_IG55 <- lm(age_at_test ~ IGP55, data = twins_data_gly_dob)
 abline(fit_IG55)
 summary(fit_IG55)
 
 # Other useful functions 
 coefficients(fit) # model coefficients
-confint(fit, level=0.95) # CIs for model parameters 
+confint(fit, level = 0.95) # CIs for model parameters 
 fitted(fit) # predicted values
 residuals(fit) # residuals
 anova(fit) # anova table 
@@ -143,7 +143,7 @@ cor(y, results$cv.fit)**2 # cross-validated R2
 
 # Line histograms method
 ggplot(gly) + 
-  geom_line(aes(colour= variable, x=value), stat="density", size=0.25) +
+  geom_line(aes(colour = variable, x = value), stat = "density", size = 0.25) +
   theme_minimal() + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1), 
         panel.grid.major.x = element_blank(),
@@ -168,10 +168,10 @@ ks.test(gly$value, y = pnorm)
 # Overlapping density histograms methods
 
 # Glycomics
-ggplot(gly, aes(x=value, fill=variable)) + theme_minimal() + 
-  geom_density(alpha = 0.1, binwidth=0.05) +
-  guides(fill=FALSE) +
-  scale_color_brewer(palette="Dark2") +
+ggplot(gly, aes(x = value, fill = variable)) + theme_minimal() + 
+  geom_density(alpha = 0.1, binwidth = 0.05) +
+  guides(fill = FALSE) +
+  scale_color_brewer(palette = "Dark2") +
   xlim(-5, 5)
 
 ##### random forest modellling using caret #####
@@ -261,7 +261,7 @@ tree_func <- function(final_model, tree_num) {
 
 tree_num <- which(model_rf$finalModel$forest$ndbigtree == min(model_rf$finalModel$forest$ndbigtree))
 tree_func(final_model = model_rf$finalModel, tree_num)
-getTree(model_rf$results, k=1, labelVar=TRUE)
+getTree(model_rf$results, k = 1, labelVar=TRUE)
 
 # Using just the glycomics data (min number of nodes)
 tree_num <- which(model_rf_smol_gly$finalModel$forest$ndbigtree == min(model_rf_smol_gly$finalModel$forest$ndbigtree))

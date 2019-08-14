@@ -24,9 +24,9 @@ twins_data_metabolomics$Year.Reported <- format(as.Date(twins_data_metabolomics[
 twins_data_metabolomics$Month.Reported <- format(as.Date(twins_data_metabolomics[["date_hli"]]), "%m")
 
 # Create a unique PublicID/year column, can use to merge datasets with
-twins_data_bmi_alldemographics$ID_visityear <- paste(twins_data_bmi_alldemographics$PublicID, twins_data_bmi_alldemographics$Year.Reported, sep="_")
-twins_data_glycomics$ID_visityear <- paste(twins_data_glycomics$PublicID, twins_data_glycomics$Year.Reported, sep="_")
-twins_data_metabolomics$ID_visityear <- paste(twins_data_metabolomics$PublicID, twins_data_metabolomics$Year.Reported, sep="_")
+twins_data_bmi_alldemographics$ID_visityear <- paste(twins_data_bmi_alldemographics$PublicID, twins_data_bmi_alldemographics$Year.Reported, sep = "_")
+twins_data_glycomics$ID_visityear <- paste(twins_data_glycomics$PublicID, twins_data_glycomics$Year.Reported, sep = "_")
+twins_data_metabolomics$ID_visityear <- paste(twins_data_metabolomics$PublicID, twins_data_metabolomics$Year.Reported, sep = "_")
 
 # NAs not tollerated in random forest methodology, need to identify and remove them
 sapply(twins_data_met_dob, function(x) sum(is.na(x)))
@@ -41,20 +41,20 @@ twins_data_met_dob <- mutate_all(twins_data_met_dob, function(x) as.numeric(as.c
 
 # Generate the random forest
 rf_gly_1 <- randomForest(age_at_test ~ ., 
-                         data = twins_data_gly_dob, importance = TRUE)  
+                         data = twins_data_gly_dob, importance = T)  
 rf_met_1 <- randomForest(age_at_test ~ ., 
-                         data = twins_data_met_dob, importance = TRUE)
+                         data = twins_data_met_dob, importance = T)
 tune <- tuneRF(twins_data_gly_dob, y = 
                  as.factor(twins_data_gly_dob$age_at_test), doBest = T)
 
 rf_gly_2 <- randomForest(as.factor(
-  age_at_test) ~ ., data = twins_data_gly_dob, importance = TRUE)
+  age_at_test) ~ ., data = twins_data_gly_dob, importance = T)
 rf_gly_smol <- randomForest(as.factor(
-  age_at_test) ~ ., data = twins_data_gly_dob, importance = TRUE, nodesize = 1500)
+  age_at_test) ~ ., data = twins_data_gly_dob, importance = T, nodesize = 1500)
 
-getTree(rf, k=1, labelVar=TRUE)
-getTree(rf_gly_2, k=1, labelVar=TRUE)
-getTree(rf_gly_smol, k=1, labelVar=TRUE)
+getTree(rf, k = 1, labelVar = T)
+getTree(rf_gly_2, k = 1, labelVar = T)
+getTree(rf_gly_smol, k = 1, labelVar = T)
 
 ID1 <- twins_data_glycomics$PublicID
 ID2 <- twins_data_metabolomics$PublicID
