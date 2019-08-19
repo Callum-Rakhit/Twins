@@ -10,14 +10,13 @@ GetPackages <- function(required.packages) {
 }
 
 GetPackages(c("tidyverse", "randomForest", "dplyr", "igraph", "caret", "reshape", "reshape2", "devtools",
-              "PerformanceAnalytics", "ggplot2", "car", "ggpubr", "lubridate", "bootstrap", 
-              "randomForestExplainer", "corrplot", "ggraph"))
+              "PerformanceAnalytics", "ggplot2", "car", "ggpubr", "lubridate", "bootstrap", "corrplot",
+              "randomForestExplainer", "ggraph", "doParallel", "ranger"))
 
-install_github("kassambara/easyGgplot2", force = T)  # install_github is a devtools package, so load this first
+devtools::install_github("kassambara/easyGgplot2", force = T)  # install_github is a devtools package, so load this first
 library(easyGgplot2)
 
 # Import the various datasets
-# twins_data_bmi <- read.delim("~/Downloads/E957-_Data_transfer_15%2f02%2f2019_%28Height_and_Weight%29/bmi.csv", sep = ",")
 twins_data_demographics <- read.delim("~/Downloads/E957-_Data_transfer_15%2f02%2f2019_%28Height_and_Weight%29/demographics.csv", sep = ",")
 twins_data_metabolomics <- read.delim("~/Downloads/metabolon_2015_scaleRunDayMedian_imputeRunDayMin_normInverse/metabolon_2015_scaleRunDayMedian_imputeRunDayMin_normInverse.txt")
 
@@ -61,29 +60,39 @@ library(ggiraphExtra)
 multiple_regression <- function(number_of_)
 
 as.data.frame(a[["coefficients"]])
-  
+
 a <- summary(fit_met)
 a <- as.data.frame(a$coefficients)
-a <- setDT(a[order(a$`t value`),][1:4,], keep.rownames = TRUE)[]
 
-postitives
-negitives
-a <- setDT(a[order(a$`Pr(>|t|)`),][1:4,], keep.rownames = TRUE)[]
-b <- paste(a$rn[2:4], collapse = " + ")
-a <- lm(paste("age_at_test ~ ", b, sep = ""), 
+positives <- a[a$`t value` > 0, ]
+negitives <- a[a$`t value` <= 0, ]
+
+positives <- data.table::setDT(positives[order(positives$`Pr(>|t|)`),][1:4,], keep.rownames = TRUE)[]
+positive_predictors <- paste(positives$rn[2:4], collapse = " + ")
+positives <- lm(paste("age_at_test ~ ", positive_predictors, sep = ""), 
         data = twins_data_metabolomics,
         na.action = na.exclude)
 
-par(mfrow = c(2,2))
-plot(a)
+negitives <- data.table::setDT(negitives[order(negitives$`Pr(>|t|)`),][1:4,], keep.rownames = TRUE)[]
+negitive_predictors <- paste(negitives$rn[2:4], collapse = " + ")
+negitives <- lm(paste("age_at_test ~ ", negitive_predictors, sep = ""), 
+                data = twins_data_metabolomics,
+                na.action = na.exclude)
 
-ggPredict(a, se = T,  interactive = T)
+layout(matrix(c(1:4), 2, 2)) # optional 4 graphs/page
+plot(positives)
+
+layout(matrix(c(1:4), 2, 2))
+plot(negitives)
+
+ggPredict(positives, se = T,  interactive = T)
+ggPredict(negitives, se = T,  interactive = T)
 
 d <- twins_data_metabolomics
 
 # Obtain predicted and residual values
-d$predicted <- predict(a)
-d$residuals <- residuals(a)
+d$predicted <- predict(positives)
+d$residuals <- residuals(positives)
 
 # Create plot
 d %>% 
@@ -96,29 +105,6 @@ d %>%
   geom_point(aes(y = predicted), shape = 1) +
   facet_grid(~ iv, scales = "free_x") +
   theme_minimal()
-
-#####################################################
-
-# Plotting some individual graphs
-plot(age_at_test ~ m52682, data = twins_data_metabolomics)
-fit1 <- lm(age_at_test ~ m52682, data = twins_data_metabolomics)
-abline(fit1)
-plot(age_at_test ~ m34400, data = twins_data_metabolomics)
-fit1 <- lm(age_at_test ~ m34400, data = twins_data_metabolomics)
-abline(fit1)
-
-# Other useful functions 
-coefficients(fit_met) # model coefficients
-confint(fit_met, level = 0.95) # CIs for model parameters 
-fitted(fit_met) # predicted values
-residuals(fit_met) # residuals
-anova(fit_met) # anova table 
-vcov(fit_met) # covariance matrix for model parameters 
-influence(fit_met) # regression diagnostics
-
-# diagnostic plots 
-layout(matrix(c(1:4), 2, 2)) # optional 4 graphs/page
-plot(fit_met) # abline plots a straight line, so only takes two variables into account
 
 ##### Assessing R2 shrinkage using 10-Fold Cross-Validation  #####
 
@@ -141,12 +127,13 @@ cor(y, results_met$cv.fit)**2 # cross-validated R2
 
 ##### Random Forest Metabolomics #####
 
-# Melt the data  for metabolomics
+# Melt the data for metabolomics
+# Can remove certain values if required e.g.
+# (metnozero <- met[ which( met$value > 0 | met$value < 0) , ])
 met <- melt(twins_data_metabolomics[c(11:766)])
-# Can remove certain values if required (metnozero <- met[ which( met$value > 0 | met$value < 0) , ])
 
 # Line histograms method
-ggplot(met) + 
+ggplot2::ggplot(met) + 
   geom_line(aes(colour = variable, x = value), stat = "density", size = 0.25) +
   theme_minimal() + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1), 
@@ -158,12 +145,13 @@ ggplot(met) +
   xlim(-5, 5)
 
 # Plot a qq graph for further visual inspection of the data
-ggqqplot(met$value)
-qqPlot(met$value)
-hist(met$value) # Looks normal
+
+ggpubr::ggqqplot(met$value)
+car::qqPlot(met$value)
+graphics::hist(met$value) # Looks normal
 
 # Overlapping density histograms methods
-ggplot(met, aes(x = value, fill = variable)) + theme_minimal() + 
+ggplot2::ggplot(met, aes(x = value, fill = variable)) + theme_minimal() + 
   geom_density(alpha = 0.1, binwidth = 0.05) +
   guides(fill = FALSE) +
   scale_color_brewer(palette = "Dark2") +
@@ -171,4 +159,43 @@ ggplot(met, aes(x = value, fill = variable)) + theme_minimal() +
   xlim(-5, 5)
 
 # Testing for normality
-ks.test(met$value, y = pnorm)
+stats::ks.test(met$value, y = pnorm)
+
+##### Summarising the random forest results #####
+
+# Convert to numeric (via character to avoid coverting factors to numeric storage values)
+
+twins_data_metabolomics <- dplye::mutate_all(twins_data_metabolomics, function(x) as.numeric(as.character(x)))
+twins_data_metabolomics[is.na(twins_data_metabolomics)] <- 0
+
+## Parallel Computing
+registerDoParallel(parallel::detectCores())  # Only 'activate' for one commands
+
+# Age as a continuous numeric variable
+rf_met_1 <- randomForest(age_at_test ~ ., data = twins_data_metabolomics, importance = TRUE)
+
+# Age as a discrete factor, NA values replace with 0
+rf_met_2 <- randomForest(as.factor(age_at_test) ~ ., data = twins_data_metabolomics, importance = TRUE) 
+
+# Ranger random forest (Brieman’s algorithm in C++)
+rf_ranger_met <- ranger::ranger(
+  formula   = as.factor(age_at_test) ~ ., 
+  data      = twins_data_metabolomics, 
+  num.trees = 500,
+  mtry      = floor(length(unique(as.factor(twins_data_metabolomics$age_at_test))) / 3)
+)
+
+install.packages("randomForestExplainer")
+library(randomForestExplainer)
+
+# Make the html reports
+randomForestExplainer::explain_forest(rf_met_1, interactions = TRUE, data = twins_data_metabolomics)
+randomForestExplainer::explain_forest(rf_met_2, interactions = TRUE, data = twins_data_metabolomics)
+randomForestExplainer::explain_forest(rf_ranger_met, interactions = TRUE, data = twins_data_metabolomics)
+
+## Is the function broken?
+
+forest <- randomForest::randomForest(Species ~ ., data = iris, localImp = TRUE)
+randomForestExplainer::explain_forest(forest, interactions = TRUE, data = iris)
+getTree(rf_met_1, labelVar=TRUE)
+top_5_met_predictors_rf <- randomForestExplainer::important_variables(rf_met_2, k = 5)

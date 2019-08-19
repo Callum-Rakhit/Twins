@@ -76,7 +76,6 @@ summary(fit) # show results
 
 # Make some summary plots
 unique(twins_data_glycomics$PublicID)
-
 chart.Correlation(twins_data_gly_dob[70:77]) # subset of the data for purposes of visualisation
 
 col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
@@ -111,7 +110,6 @@ vcov(fit) # covariance matrix for model parameters
 influence(fit) # regression diagnostics
 
 # diagnostic plots 
-# layout(matrix(c(1, 2, 3, 4), 2, 2)) # optional 4 graphs/page 
 layout(matrix(c(1:4), 2, 2)) # optional 4 graphs/page
 plot(fit)
 
@@ -281,7 +279,7 @@ rf_gly_1 <- randomForest(age_at_test ~ ., data = twins_data_gly_dob, importance 
 rf_met_1 <- randomForest(age_at_test ~ ., data = twins_data_met_dob, importance = TRUE)
 
 # Age as a discrete factor
-rf_gly_2 <- randomForest(as.factor(age_at_test) ~ ., data = twins_data_gly_dob, importance = TRUE)
+rf_gly_2 <- randomForest(as.factor(age_at_test) ~ ., data = twins_data_gly_dob, importance = TRUE, localImp = TRUE)
 rf_met_2 <- randomForest(as.factor(age_at_test) ~ ., data = twins_data_met_dob, importance = TRUE) # n.a values replace with 0
 
 # Make the html reports
@@ -289,3 +287,5 @@ explain_forest(rf_gly_1, interactions = TRUE, data = twins_data_gly_dob)
 explain_forest(rf_gly_2, interactions = TRUE, data = twins_data_gly_dob)
 explain_forest(rf_met_1, interactions = TRUE, data = twins_data_met_dob)
 explain_forest(rf_met_2, interactions = TRUE, data = twins_data_met_dob)
+
+randomForestExplainer::important_variables(rf_gly_2, k = 5)
