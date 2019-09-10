@@ -24,7 +24,9 @@ devtools::install_github(c("kassambara/easyGgplot2", "MI2DataLab/randomForestExp
 lapply(c("randomForestExplainer", "easyGgplot2"), require, character.only = T)
 
 ##### Import the datasets #####
-twins_data_glycomics_raw <- readr::read_delim(
+Fcell_levels <- readr::read_csv(
+  "~/Desktop/twin_IDs_sm.csv")
+twins_fcell_glycomics_raw <- readr::read_delim(
   "~/Documents/twins_ML_project/Glycomics/glycans.igg.global.combat.scale.processed.txt")
 # Need for DOB
 twins_data_metabolomics_raw <- readr::read.delim(
@@ -33,31 +35,26 @@ twins_data_metabolomics_raw <- readr::read.delim(
 ##### Adding additional age information to the datasets #####
 
 # Extract year of birth information to new data frame
-twins_data_demographics <- base::data.frame(twins_data_metabolomics_raw$PublicID, twins_data_metabolomics_raw$month_year_birth)
-colnames(twins_data_demographics) <- c("PublicID", "BirthYear")
-twins_data_demographics$BirthYear <- lubridate::dmy(twins_data_demographics$BirthYear)
-twins_data_demographics$BirthYear <- format(as.Date(twins_data_demographics[["BirthYear"]]), "%Y")
+colnames(Fcell_levels) <- c("PublicID", "FAM", "TwinType", "Sex", "YEAR_BIRTH", "ethnicity", "geom_mean_FCFACS",
+                            "Sanger_Genome_Seq", "Glycomics", "metabolomic", "overlapping")
+twins_fcell_glycomics <- base::merge(twins_fcell_glycomics_raw, Fcell_levels, by = "PublicID")
+twins_fcell_glycomics <- twins_fcell_glycomics[!base::duplicated(twins_fcell_glycomics$PublicID), ]
 
 # Remove duplicates from the list
-twins_data_demographics <- twins_data_demographics[!base::duplicated(twins_data_demographics$PublicID), ]
-
-# Merge information into glycomics, calculate individuals age at time of testing
-twins_data_glycomics <- base::merge(twins_data_glycomics_raw, twins_data_demographics, by = "PublicID")
-twins_data_glycomics$date <- base::as.Date(twins_data_glycomics$date, format = "%d/%m/%Y")
-twins_data_glycomics$age_at_test <- base::as.numeric(format(as.Date(twins_data_glycomics[["date"]]), "%Y")) - base::as.numeric(twins_data_glycomics$BirthYear)
-drops <- c("PublicID", "batch", "plate", "date", "Year.Reported", "Month.Reported", "month_year_birth", "BirthYear", "ID_visityear")
-twins_data_glycomics <- twins_data_glycomics[,!(names(twins_data_glycomics) %in% drops)]
+drops <- c("PublicID", "batch", "plate", "date", "Year.Reported", "Month.Reported", "month_year_birth", "BirthYear", "ID_visityear",
+           "FAM", "TwinType", "Sex", "YEAR_BIRTH", "ethnicity", "Sanger_Genome_Seq", "Glycomics", "metabolomic", "overlapping")
+twins_fcell_glycomics <- twins_fcell_glycomics[,!(names(twins_fcell_glycomics) %in% drops)]
 
 ##### Visually testing for normailty with several plots #####
 
 # Get variable names
-glycans_only <- melt(twins_data_glycomics[1:76])
-age_only <- melt(twins_data_glycomics[77])
+glycans_only <- melt(twins_fcell_glycomics[1:76])
+fcell_only <- melt(twins_fcell_glycomics[77])
 
 # Plot (quartile values)
 layout(matrix(c(1:1), 1, 1))
 qqPlot(glycans_only$value)
-qqPlot(age_only$value)
+qqPlot(fcell_only$value)
 
 ggplot(glycans_only, aes(x = value, fill = variable)) + theme_minimal() + 
   geom_density(alpha = 0.1) +
@@ -65,7 +62,7 @@ ggplot(glycans_only, aes(x = value, fill = variable)) + theme_minimal() +
   scale_color_brewer(palette = "Dark2") +
   xlim(-5, 5)
 
-ggplot(age_only, aes(x = value, fill = variable)) + theme_minimal() + 
+ggplot(fcell_only, aes(x = value, fill = variable)) + theme_minimal() + 
   geom_density(alpha = 0.1) +
   guides(fill = F) +
   scale_color_brewer(palette = "Dark2")
@@ -73,7 +70,7 @@ ggplot(age_only, aes(x = value, fill = variable)) + theme_minimal() +
 # Statistical (probablity of your data occuring from a randomly sampled normal distribution)
 # Works for distrubtions with >5000 variables unlike some other algorithms
 stats::ks.test(glycans_only$value, y = pnorm, alternative = "two.sided")
-stats::ks.test(age_only$value, y = pnorm, alternative = "two.sided")
+stats::ks.test(fcell_only$value, y = pnorm, alternative = "two.sided")
 
 # Testing "normality" of variables being used as predictors in a regression model before the fit is unwarranted. 
 # It does make sense to test the normality of the residuals since that is what is assumed in the modeling theory.
@@ -81,61 +78,26 @@ stats::ks.test(age_only$value, y = pnorm, alternative = "two.sided")
 ##### Random Forest Glycomics #####
 
 # Convert to numeric (via character to avoid coverting factors to numeric storage values), remove NAs
-twins_data_glycomics <- dplyr::mutate_all(twins_data_glycomics, function(x) as.numeric(as.character(x)))
-twins_data_glycomics <- na.omit(twins_data_glycomics)
+twins_fcell_glycomics <- dplyr::mutate_all(twins_fcell_glycomics, function(x) as.numeric(as.character(x)))
+twins_fcell_glycomics <- na.omit(twins_fcell_glycomics)
 
 # Age as a numerical factor, standard random forest, default mtry value is max(floor(ncol(x)/3), nodesize is 1 or 5 if factor
-rf_gly_1 <- randomForest::randomForest(age_at_test ~ ., data = twins_data_glycomics, importance = T)
+# rf_gly_1 <- randomForest::randomForest(geom_mean_FCFACS ~ ., data = twins_fcell_glycomics, importance = T)
 
 # Make the html reports and pull out other useful factors (broken)
-# randomForestExplainer::explain_forest(rf_met_1, interactions = T, data = twins_data_glycomics)
+# randomForestExplainer::explain_forest(rf_met_1, interactions = T, data = twins_fcell_glycomics)
 # randomForest::getTree(rf_met_1, labelVar = T)
 # top_25_met_predictors_rf <- randomForestExplainer::important_variables(rf_met_1, k = 25)
 # plot(rf_met_1)  # Plot cumulative mse vs number of trees
 # which.min(rf_met_1$mse)  # Find tree with the lowest mse
 # sqrt(rf_met_1$mse[which.min(rf_met_1$mse)])  # Root mean square error (SD of residuals) of this optimal random forest
 
-# Split the glycomics data into training and test sets
-glycomics_split <- rsample::initial_split(twins_data_glycomics, prop = .7)
-
-# Training data
-glycomics_train <- rsample::training(twins_data_glycomics)
-
-# Test data
-glycomics_test  <- rsample::testing(twins_data_glycomics)
-
-# Set age_at_test as the variable to be predicted
-x_test <- glycomics_train[setdiff(names(glycomics_train), "age_at_test")]
-y_test <- glycomics_train$age_at_test
-
-rf_oob_comp <- randomForest(
-  formula = age_at_test ~ .,
-  data    = glycomics_train,
-  xtest   = x_test,
-  ytest   = y_test
-)
-
-# Extract OOB & validation errors
-oob <- sqrt(rf_oob_comp$mse)
-validation <- sqrt(rf_oob_comp$test$mse)
-
-# Compare error rates
-tibble::tibble(
-  `Out of Bag Error` = oob,
-  `Test error` = validation,
-  ntrees = 1:rf_oob_comp$ntree) %>%
-  gather(Metric, RMSE, -ntrees) %>%
-  ggplot(aes(ntrees, RMSE, color = Metric)) +
-  geom_line() +
-  scale_y_continuous() +
-  xlab("Number of trees")
-
 # Tuning features using random forest
-features <- setdiff(names(twins_data_glycomics), "age_at_test")
+features <- setdiff(names(twins_fcell_glycomics), "geom_mean_FCFACS")
 
-m2 <- randomForest::tuneRF(
-  x = twins_data_glycomics[features],
-  y = twins_data_glycomics$age_at_test,
+fcell_mtry_tune <- randomForest::tuneRF(
+  x = twins_fcell_glycomics[features],
+  y = twins_fcell_glycomics$geom_mean_FCFACS,
   ntreeTry = 500,
   mtryStart = 5,
   stepFactor = 1.5,
@@ -145,10 +107,10 @@ m2 <- randomForest::tuneRF(
 
 # Hyperparameter grid search (use input from tuneRF)
 hyper_grid <- expand.grid(
-  mtry       = seq(4, 7, by = 1),
-  node_size  = seq(2, 9, by = 1),
-  sampe_size = c(.55, .60, .65, .70, .75, .80) #,
-  # OOB_RMSE  = 0
+  mtry = seq(2, 4, by = 1),
+  node_size = seq(1, 5, by = 1),
+  sampe_size = c(.55, .60, .65, .70, .75, .80),
+  OOB_RMSE = 0
 )
 
 # Multiple cores
@@ -159,11 +121,11 @@ for(i in 1:nrow(hyper_grid)) {
   
   # train model
   test_gly_model <- ranger(
-    formula         = age_at_test ~ ., 
-    data            = twins_data_glycomics, 
-    num.trees       = 500,
-    mtry            = hyper_grid$mtry[i],
-    min.node.size   = hyper_grid$node_size[i],
+    formula = geom_mean_FCFACS ~ ., 
+    data = twins_fcell_glycomics, 
+    num.trees = 500,
+    mtry = hyper_grid$mtry[i],
+    min.node.size = hyper_grid$node_size[i],
     sample.fraction = hyper_grid$sampe_size[i]
   )
   
@@ -179,35 +141,25 @@ hyper_grid %>%
 hist(hyper_grid$OOB_RMSE, breaks = 20)
 
 # Now have the best perameters, use these to construct a ranger random forest
-
-OOB_RMSE <- vector(mode = "numeric", length = 1)
+OOB_RMSE <- vector(mode = "numeric", length = 100)
 
 for(i in seq_along(OOB_RMSE)) {
   
   optimal_gly_model <- ranger(
-    formula         = age_at_test ~ ., 
-    data            = twins_data_glycomics, 
-    num.trees       = 500,
-    mtry            = 4,
-    min.node.size   = 3,
-    sample.fraction = .55,
-    importance      = 'impurity'
+    formula = geom_mean_FCFACS ~ ., 
+    data = twins_fcell_glycomics, 
+    num.trees = 500,
+    mtry = 2,
+    min.node.size = 1,
+    sample.fraction = 0.6,
+    importance = 'impurity'
   )
   
   OOB_RMSE[i] <- sqrt(optimal_gly_model$prediction.error)
 }
 
 hist(OOB_RMSE, breaks = 20)
-
 print(optimal_gly_model)
-
-# ROC curve
-
-require(pROC)
-rf.roc <- roc(twins_data_glycomics$age_at_test, optimal_gly_model$votes[,2])
-plot(rf.roc)
-auc(rf.roc)
-
 
 # Then plot the top 25 most important variables across the random forests
 optimal_gly_model$variable.importance %>% 
@@ -217,21 +169,28 @@ optimal_gly_model$variable.importance %>%
   ggplot(aes(reorder(names, x), x)) +
   geom_col() +
   coord_flip() +
-  ggtitle("The 25 variables which most reduce the OOB RMSE") +
+  ggtitle("25 variables which most reduce the OOB RMSE") +
   theme_minimal()
+
+##### Setup training and test sets #####
+
+# Split the glycomics data into training and test sets
+glycomics_fcell_split <- rsample::initial_split(twins_fcell_glycomics, prop = 0.6)
+glycomics_fcell_train <- rsample::training(glycomics_fcell_split)
+glycomics_fcell_test  <- rsample::testing(glycomics_fcell_split)
 
 ##### Using h2o for grid optimisation and random forest generation
 
 h2o.init(max_mem_size = "32G")
 
 # Turn training set into h2o object
-train.h2o <- as.h2o(metabolomics_train)
+train.h2o <- as.h2o(glycomics_fcell_train)
 
 # Hyperparameter grid
 hyper_grid.h2o <- list(
-  ntrees      = seq(100, 500, by = 100),
-  mtries      = seq(10, 110, by = 10),
-  sample_rate = c(.55, .625, .70, .775)
+  ntrees = seq(200, 600, by = 100),
+  mtries = seq(2, 5, by = 1),
+  sample_rate = c(.55, .6, .65, .7)
 )
 
 # Random grid search criteria
@@ -244,8 +203,8 @@ search_criteria <- list(
 )
 
 # Set values for x and y
-y <- "age_at_test"
-x <- setdiff(names(twins_data_metabolomics), y)
+y <- "geom_mean_FCFACS"
+x <- setdiff(names(twins_fcell_glycomics), y)
 
 # Build the grid search 
 grid <- h2o.grid(
@@ -261,7 +220,7 @@ grid <- h2o.grid(
 # Collect the results and sort by our model performance metric of choice
 grid_perf <- h2o.getGrid(
   grid_id = "rf_grid_2", 
-  sort_by = "mse", 
+  sort_by = "mse",
   decreasing = F
 )
 
@@ -278,15 +237,14 @@ best_model_id <- grid_perf@model_ids[[1]]
 best_model <- h2o.getModel(best_model_id)
 
 # Now let’s evaluate the model performance on a test set
-metabolomics_train.h2o <- as.h2o(metabolomics_train)
-metabolomics_test.h2o <- as.h2o(metabolomics_test)
-best_model_perf <- h2o.performance(model = best_model, newdata = metabolomics_test.h2o)
+test.h2o <- as.h2o(glycomics_fcell_test)
+best_model_performance <- h2o.performance(model = best_model, newdata = test.h2o)
 
 # RMSE of best model
-h2o.mse(best_model_perf) %>% sqrt()
+h2o.mse(best_model_performance) %>% sqrt()
 
 # Make a prediction from the h2o random forest on the test set
-pred_h2o <- predict(best_model, metabolomics_test.h2o)
+pred_h2o <- predict(best_model, test.h2o)
 head(pred_h2o)
 
 # Plot 25 most important variables
@@ -304,9 +262,9 @@ h2o.shutdown()  # Shuts down the Java cluster
 ##### Glycomics Regression #####
 
 # Multiple linear regression 
-glycans <- paste(colnames(twins_data_glycomics)[-length(twins_data_glycomics)], collapse = " + ")
-glycomic_regression <- stats::lm(paste("age_at_test ~ ", glycans, sep = ""),
-                                 data = twins_data_glycomics, na.action = na.exclude)
+glycans <- paste(colnames(twins_fcell_glycomics)[-length(twins_fcell_glycomics)], collapse = " + ")
+glycomic_regression <- stats::lm(paste("geom_mean_FCFACS ~ ", glycans, sep = ""),
+                                 data = twins_fcell_glycomics, na.action = na.exclude)
 base::summary(glycomic_regression) # show results
 
 # Diagnostic plots
@@ -315,8 +273,8 @@ plot(glycomic_regression)
 
 # Split lm models into positive and negative, pick out top predictors
 glycans <- paste(row.names(as.data.frame(sort(optimal_gly_model$variable.importance, decreasing = T)))[1:10], collapse = " + ")
-glycomic_regression <- stats::lm(paste("age_at_test ~ ", glycans, sep = ""),
-                                 data = twins_data_glycomics, na.action = na.exclude)
+glycomic_regression <- stats::lm(paste("geom_mean_FCFACS ~ ", glycans, sep = ""),
+                                 data = twins_fcell_glycomics, na.action = na.exclude)
 base::summary(glycomic_regression) # show results
 
 # Diagnostic plots
@@ -332,8 +290,8 @@ negitives <- a[a$`t value` <= 0, ]
 # Assessing R2 shrinkage using 10-Fold cross-validation
 
 # Create matrices of predictors
-x <- as.matrix(twins_data_glycomics[colnames(twins_data_glycomics)[-length(twins_data_glycomics)]])
-y <- as.matrix(twins_data_glycomics[c("age_at_test")]) 
+x <- as.matrix(twins_fcell_glycomics[colnames(twins_fcell_glycomics)[-length(twins_fcell_glycomics)]])
+y <- as.matrix(twins_fcell_glycomics[c("geom_mean_FCFACS")]) 
 
 # Define theta fit/predict functions 
 ThetaFit <- function(x, y){lsfit(x, y)}

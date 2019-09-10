@@ -1,3 +1,14 @@
+##### Assessing the overlap in the datasets #####
+
+count(
+  merge(
+    as.data.frame(sort(unique(twins_data_glycomics$PublicID))),
+    as.data.frame(sort(unique(twins_data_metabolomics$PublicID))),
+    by.x = 'sort(unique(twins_data_glycomics$PublicID))', 
+    by.y = 'sort(unique(twins_data_metabolomics$PublicID))'
+  )
+)
+
 ##### Attempting to merge glycomics and metabolomics #####
 
 # Merge information from 2 into 1
