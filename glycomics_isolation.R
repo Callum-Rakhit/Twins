@@ -1,12 +1,11 @@
 # TODO(Callum)
 #  Produce the explain random forest plots manually
-#  Import the FCFACS data
-#  Import a SNP subset
+#  Import a SNP subset/any part of the SNP data
+#  Sync rf "template" across all scripts
 
 ##### Load/install the required packages #####
 
 # for tidyverse needed libxml2-dev, libssl-dev, libcurl4-openssl-dev in the OS
-
 GetPackages <- function(required.packages) {
   packages.not.installed <- 
     required.packages[!(required.packages %in% installed.packages()[, "Package"])]
@@ -59,18 +58,20 @@ layout(matrix(c(1:1), 1, 1))
 qqPlot(glycans_only$value)
 qqPlot(age_only$value)
 
+# Glycan values histogram
 ggplot(glycans_only, aes(x = value, fill = variable)) + theme_minimal() + 
   geom_density(alpha = 0.1) +
   guides(fill = F) +
   scale_color_brewer(palette = "Dark2") +
   xlim(-5, 5)
 
+# Histogram of ages
 ggplot(age_only, aes(x = value, fill = variable)) + theme_minimal() + 
   geom_density(alpha = 0.1) +
   guides(fill = F) +
   scale_color_brewer(palette = "Dark2")
 
-# Statistical (probablity of your data occuring from a randomly sampled normal distribution)
+# Probablity of data occuring from a randomly sampled normal distribution
 # Works for distrubtions with >5000 variables unlike some other algorithms
 stats::ks.test(glycans_only$value, y = pnorm, alternative = "two.sided")
 stats::ks.test(age_only$value, y = pnorm, alternative = "two.sided")

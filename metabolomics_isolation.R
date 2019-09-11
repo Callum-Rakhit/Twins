@@ -1,7 +1,6 @@
 ##### Load/install the required packages #####
 
 # for tidyverse needed libxml2-dev, libssl-dev, libcurl4-openssl-dev in the OS
-
 GetPackages <- function(required.packages) {
   packages.not.installed <- 
     required.packages[!(required.packages %in% installed.packages()[, "Package"])]

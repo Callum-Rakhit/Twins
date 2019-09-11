@@ -1,12 +1,6 @@
-# TODO(Callum)
-#  Produce the explain random forest plots manually
-#  Import the FCFACS data
-#  Import a SNP subset
-
 ##### Load/install the required packages #####
 
 # for tidyverse needed libxml2-dev, libssl-dev, libcurl4-openssl-dev in the OS
-
 GetPackages <- function(required.packages) {
   packages.not.installed <- 
     required.packages[!(required.packages %in% installed.packages()[, "Package"])]
@@ -24,10 +18,9 @@ devtools::install_github(c("kassambara/easyGgplot2", "MI2DataLab/randomForestExp
 lapply(c("randomForestExplainer", "easyGgplot2"), require, character.only = T)
 
 ##### Import the datasets #####
-Fcell_levels <- readr::read_csv(
-  "~/Desktop/twin_IDs_sm.csv")
-twins_fcell_glycomics_raw <- utils::read.delim(
-  "~/Documents/twins_ML_project/Glycomics/glycans.igg.global.combat.scale.processed.txt")
+
+Fcell_levels <- readr::read_csv("~/Desktop/twin_IDs_sm.csv")
+twins_fcell_glycomics_raw <- utils::read.delim("~/Documents/twins_ML_project/Glycomics/glycans.igg.global.combat.scale.processed.txt")
 
 ##### Adding additional age information to the datasets #####
 
