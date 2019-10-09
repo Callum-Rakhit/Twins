@@ -2,3 +2,9 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# Plots
+*.pdf
+
+# Datasets (too large)
+*.csv

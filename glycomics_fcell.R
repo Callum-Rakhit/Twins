@@ -2,12 +2,9 @@
 
 # for tidyverse needed libxml2-dev, libssl-dev, libcurl4-openssl-dev in the OS
 GetPackages <- function(required.packages) {
-  packages.not.installed <- 
-    required.packages[!(required.packages %in% installed.packages()[, "Package"])]
-  if(length(packages.not.installed)){
-    install.packages(packages.not.installed, dependencies = T)}
-  suppressMessages(lapply(required.packages, require, character.only = T))
-}
+  packages.not.installed <- required.packages[!(required.packages %in% installed.packages()[, "Package"])]
+  if(length(packages.not.installed)){install.packages(packages.not.installed, dependencies = T)}
+  suppressMessages(lapply(required.packages, require, character.only = T)) }
 
 GetPackages(c("tidyverse", "randomForest", "dplyr", "igraph", "caret", "reshape", "reshape2",
               "devtools", "PerformanceAnalytics", "ggplot2", "car", "ggpubr", "lubridate",
@@ -19,8 +16,9 @@ lapply(c("randomForestExplainer", "easyGgplot2"), require, character.only = T)
 
 ##### Import the datasets #####
 
-Fcell_levels <- readr::read_csv("~/Desktop/twin_IDs_sm.csv")
-twins_fcell_glycomics_raw <- utils::read.delim("~/Documents/twins_ML_project/Glycomics/glycans.igg.global.combat.scale.processed.txt")
+Fcell_levels <- readr::read_csv("~/Twins/twin_IDs_Fcell_FACs.csv")
+twins_fcell_glycomics_raw <- utils::read.delim(
+  "~/Documents/twins_ML_project/Glycomics/glycans.igg.global.combat.scale.processed.txt")
 
 ##### Adding additional age information to the datasets #####
 
@@ -31,14 +29,15 @@ twins_fcell_glycomics <- base::merge(twins_fcell_glycomics_raw, Fcell_levels, by
 twins_fcell_glycomics <- twins_fcell_glycomics[!base::duplicated(twins_fcell_glycomics$PublicID), ]
 
 # Remove duplicates from the list
-drops <- c("PublicID", "batch", "plate", "date", "Year.Reported", "Month.Reported", "month_year_birth", "BirthYear", "ID_visityear",
-           "FAM", "TwinType", "Sex", "YEAR_BIRTH", "ethnicity", "Sanger_Genome_Seq", "Glycomics", "metabolomic", "overlapping")
+drops <- c("PublicID", "batch", "plate", "date", "Year.Reported", "Month.Reported", "month_year_birth", 
+           "BirthYear", "ID_visityear", "FAM", "TwinType", "Sex", "YEAR_BIRTH", "ethnicity", 
+           "Sanger_Genome_Seq", "Glycomics", "metabolomic", "overlapping")
 twins_fcell_glycomics <- twins_fcell_glycomics[,!(names(twins_fcell_glycomics) %in% drops)]
 
 ##### Visually testing for normailty with several plots #####
 
 # Get variable names
-glycans_only <- melt(twins_fcell_glycomics[1:76])
+glycans_only <- melt(twins_fcell_glycomics[1:6])
 fcell_only <- melt(twins_fcell_glycomics[77])
 
 # Plot (quartile values)
@@ -57,7 +56,7 @@ ggplot(fcell_only, aes(x = value, fill = variable)) + theme_minimal() +
   guides(fill = F) +
   scale_color_brewer(palette = "Dark2")
 
-# Statistical (probablity of your data occuring from a randomly sampled normal distribution)
+# Probablity of your data occuring in a randomly sampled normal distribution
 # Works for distrubtions with >5000 variables unlike some other algorithms
 stats::ks.test(glycans_only$value, y = pnorm, alternative = "two.sided")
 stats::ks.test(fcell_only$value, y = pnorm, alternative = "two.sided")
