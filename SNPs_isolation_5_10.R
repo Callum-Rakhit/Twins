@@ -14,18 +14,17 @@ GetPackages(c("tidyverse", "randomForest", "dplyr", "igraph", "caret", "reshape"
 devtools::install_github("krlmlr/ulimit")
 
 ##### Load in the genotype matrices #####
-
-SNP_list_1_4 <- fread(input = "~/Documents/twins_ML_project/plink/1-4-T23-gwa610K.output.raw")  # Load the plink data
-SNP_list_1_4 <- SNP_list_1_4[, grep("HET", colnames(SNP_list_1_4)):=NULL]  # Remove the HET columns (cut dataframe size in half)
+SNP_list_5_10 <- fread(input = "~/Documents/twins_ML_project/plink/5-10-T23-gwa610K.output.raw")  # Load the plink data
+SNP_list_5_10 <- SNP_list_5_10[, grep("HET", colnames(SNP_list_5_10)):=NULL]  # Remove the HET columns (cut dataframe size in half)
 SNP_Fcell_test <- fread(input = "~/Twins/FID_ID_FCellFACS.csv")  # Load fcell level information
-SNP_merged_test <- merge(x = SNP_list_1_4, y = SNP_Fcell_test, by = "IID")  # Add the fcell information to the SNP data
+SNP_merged_test <- merge(x = SNP_list_5_10, y = SNP_Fcell_test, by = "IID")  # Add the fcell information to the SNP data
 
-rm(SNP_list_1_4)
+rm(SNP_list_5_10)
 rm(SNP_Fcell_test)
 gc()
 
-saveRDS(SNP_merged_test, file = "~/Documents/twins_ML_project/plink/ML_project/1-4_dataset_noHET_FACSinc.rds")
-SNP_merged_test <- readRDS(file = "~/Documents/twins_ML_project/plink/ML_project/1-4_dataset_noHET_FACSinc.rds")
+saveRDS(SNP_merged_test, file = "~/Documents/twins_ML_project/plink/ML_project/5_10_dataset_noHET_FACSinc.rds")
+SNP_merged_test <- readRDS(file = "~/Documents/twins_ML_project/plink/ML_project/5_10_dataset_noHET_FACSinc.rds")
 
 SNP_merged_test <- SNP_merged_test[, grep("AT", colnames(SNP_merged_test)):=NULL]
 SNP_merged_test <- SNP_merged_test[, grep("SEX", colnames(SNP_merged_test)):=NULL]
@@ -42,6 +41,7 @@ SNP_merged_test_3 <- SNP_merged_test[,((2*round(dim(SNP_merged_test)[2]/3))+1):(
 
 # Part 1
 SNP_merged_test_1 <- cbind(IDs, SNP_merged_test_1, FACS_info)
+rm(SNP_merged_test)
 
 # Part 2
 SNP_merged_test_1 <- cbind(IDs, SNP_merged_test_2, FACS_info)
@@ -72,11 +72,11 @@ NAs.to.zero(SNP_merged_test_Twin1)
 NAs.to.zero(SNP_merged_test_Twin2)
 
 # Save/Load checkpoint 2
-saveRDS(SNP_merged_test_Twin1, file = "~/Documents/twins_ML_project/plink/ML_project/1-4_SNP_merged_test_Twin1_part3.rds")  # Save locally as compact rds file
-saveRDS(SNP_merged_test_Twin2, file = "~/Documents/twins_ML_project/plink/ML_project/1-4_SNP_merged_test_Twin2_part3.rds")  # Save locally as compact rds file
+saveRDS(SNP_merged_test_Twin1, file = "~/Documents/twins_ML_project/plink/ML_project/5_10_SNP_merged_train_Twin1_part1.rds")  # Save locally as compact rds file
+saveRDS(SNP_merged_test_Twin2, file = "~/Documents/twins_ML_project/plink/ML_project/5-10_SNP_merged_test_Twin2_part1.rds")  # Save locally as compact rds file
 
-SNP_merged_test_Twin1 <- readRDS(file = "~/Documents/twins_ML_project/plink/ML_project/1-4_SNP_merged_test_Twin1_part1.rds")
-SNP_merged_test_Twin2 <- readRDS(file = "~/Documents/twins_ML_project/plink/ML_project/1-4_SNP_merged_test_Twin2_part1.rds")
+SNP_merged_test_Twin1 <- readRDS(file = "~/Documents/twins_ML_project/plink/ML_project/5-10_SNP_merged_train_Twin1_part1.rds")
+SNP_merged_test_Twin2 <- readRDS(file = "~/Documents/twins_ML_project/plink/ML_project/5-10_SNP_merged_test_Twin2_part1.rds")
 
 m2 <- randomForest::tuneRF(
   x = SNP_merged_test_Twin1,
@@ -113,11 +113,11 @@ h2o.init(max_mem_size = "16G", nthreads = -1)
 
 # as.h2o very slo, use h2o.importFile instead (better to write to disk then load into h2o)
 # Is the data being clipped?
-data.table::fwrite(x = Twins1_SNPs_fcell_train, file = "/home/callumrakhit/Documents/twins_ML_project/plink/ML_project/Twins1_SNPs_fcell_train_part3.csv")
-data.table::fwrite(x = Twins1_SNPs_fcell_test, file = "/home/callumrakhit/Documents/twins_ML_project/plink/ML_project/Twins2_SNPs_fcell_test_part3.csv")
+data.table::fwrite(x = Twins1_SNPs_fcell_train, file = "/home/callumrakhit/Documents/twins_ML_project/plink/ML_project/Twins1_SNPs_fcell_train_part4.csv")
+data.table::fwrite(x = Twins1_SNPs_fcell_test, file = "/home/callumrakhit/Documents/twins_ML_project/plink/ML_project/Twins2_SNPs_fcell_test_part4.csv")
 
-train.h2o <- h2o.importFile(path = "/home/callumrakhit/Documents/twins_ML_project/plink/ML_project/Twins1_SNPs_fcell_train_part3.csv")
-test.h2o <- h2o.importFile(path = "/home/callumrakhit/Documents/twins_ML_project/plink/ML_project/Twins2_SNPs_fcell_test_part3.csv")
+train.h2o <- h2o.importFile(path = "/home/callumrakhit/Documents/twins_ML_project/plink/ML_project/Twins1_SNPs_fcell_train_part4.csv")
+test.h2o <- h2o.importFile(path = "/home/callumrakhit/Documents/twins_ML_project/plink/ML_project/Twins2_SNPs_fcell_test_part4.csv")
 
 rm(Twins1_SNPs_fcell_test)
 rm(Twins1_SNPs_fcell_train)
@@ -160,9 +160,9 @@ ulimit::memory_limit(size = 16384)
 Cstack_info()["size"]
 
 # Build the grid search 
-grid_3 <- h2o.grid(
+grid_4 <- h2o.grid(
   algorithm = "randomForest",
-  grid_id = "rf_grid_3",
+  grid_id = "rf_grid_4",
   x = x, 
   y = y,  
   training_frame = train.h2o,
@@ -171,14 +171,14 @@ grid_3 <- h2o.grid(
 )
 
 # Save the model locally
-saveRDS(object = grid_2, file = "~/Documents/twins_ML_project/plink/ML_project/rf_3.rds")
+saveRDS(object = grid_4, file = "~/Documents/twins_ML_project/plink/ML_project/rf_4.rds")
 
 # Load model
-grid <- readRDS("~/Documents/twins_ML_project/plink/ML_project/rf_3")
+grid <- readRDS("~/Documents/twins_ML_project/plink/ML_project/rf_4")
 
 # Collect the results and sort by our model performance metric of choice
 best_grid <- h2o.getGrid(
-  grid_id = "rf_grid_3", 
+  grid_id = "rf_grid_4", 
   sort_by = "mse",
   decreasing = F
 )
@@ -230,7 +230,7 @@ rf_1_top_100_predictors <- rf_1_top_100_predictors[,1]
 
 View(rf_1_top_100_predictors)
 
-write_csv(x = as.data.frame(rf_1_top_100_predictors), path = "~/Documents/twins_ML_project/plink/ML_project/rf_3_top100.csv")
+write_csv(x = as.data.frame(rf_1_top_100_predictors), path = "~/Documents/twins_ML_project/plink/ML_project/rf_4_top100.csv")
 
 h2o.shutdown(prompt = F)  # Shuts down the Java cluster
 
