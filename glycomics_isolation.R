@@ -14,6 +14,13 @@ GetPackages <- function(required.packages) {
   suppressMessages(lapply(required.packages, require, character.only = T))
 }
 
+options(pkgType = "source")
+install.packages("tidyverse", dependencies = T) 
+install.packages("caret", dependencies = T)
+install.packages("ggpubr", dependencies = T)
+
+library(tidyverse)
+
 GetPackages(c("tidyverse", "randomForest", "dplyr", "igraph", "caret", "reshape", "reshape2",
               "devtools", "PerformanceAnalytics", "ggplot2", "car", "ggpubr", "lubridate",
               "bootstrap", "corrplot", "ggraph", "doParallel", "ranger", "data.table"))
@@ -24,10 +31,53 @@ lapply(c("randomForestExplainer", "easyGgplot2"), require, character.only = T)
 
 ##### Import the datasets #####
 twins_data_glycomics_raw <- readr::read_delim(
-  "~/Documents/twins_ML_project/Glycomics/glycans.igg.global.combat.scale.processed.txt")
+  "~/Documents/twins_ML_project/Glycomics/glycans.igg.global.combat.scale.processed.txt", delim = "\t")
+
 # Need for DOB
-twins_data_metabolomics_raw <- readr::read.delim(
-  "~/Documents/twins_ML_project/metabolon_2015_scaleRunDayMedian_imputeRunDayMin_normInverse/metabolon_2015_scaleRunDayMedian_imputeRunDayMin_normInverse.txt")
+twins_data_metabolomics_raw <- readr::read_delim(
+  "~/Documents/twins_ML_project/metabolon_2015_scaleRunDayMedian_imputeRunDayMin_normInverse/metabolon_2015_scaleRunDayMedian_imputeRunDayMin_normInverse.txt",
+  delim = "\t")
+
+# Split the data into twins
+SNP_Fcell_test <- fread(input = "~/Twins/FID_ID_FCellFACS.csv")  # Load fcell level information
+SNP_merged_test <- merge(x = twins_data_glycomics_raw, y = SNP_Fcell_test, by = "IID")  # Add the fcell information to the SNP data
+
+rm(SNP_list_1_4)
+rm(SNP_Fcell_test)
+gc()
+
+saveRDS(SNP_merged_test, file = "~/Documents/twins_ML_project/plink/ML_project/1-4_dataset_noHET_FACSinc.rds")
+SNP_merged_test <- readRDS(file = "~/Documents/twins_ML_project/plink/ML_project/1-4_dataset_noHET_FACSinc.rds")
+
+SNP_merged_test <- SNP_merged_test[, grep("AT", colnames(SNP_merged_test)):=NULL]
+SNP_merged_test <- SNP_merged_test[, grep("SEX", colnames(SNP_merged_test)):=NULL]
+SNP_merged_test <- SNP_merged_test[, grep("PHENOTYPE", colnames(SNP_merged_test)):=NULL]
+
+# SNP_merged_test[,1:5][1,] # Checking columns names
+# SNP_merged_test[,dim(SNP_merged_test_1)[2]-5:dim(SNP_merged_test_1)][1,] # Checking columns names
+
+IDs <- SNP_merged_test[,1:2]
+FACS_info <- SNP_merged_test[,dim(SNP_merged_test)[2]:dim(SNP_merged_test)[2]]
+SNP_merged_test_1 <- SNP_merged_test[,3:round(dim(SNP_merged_test)[2]/3)]
+SNP_merged_test_2 <- SNP_merged_test[,(round(dim(SNP_merged_test)[2]/3)+1):(2*round(dim(SNP_merged_test)[2]/3))]
+SNP_merged_test_3 <- SNP_merged_test[,((2*round(dim(SNP_merged_test)[2]/3))+1):((dim(SNP_merged_test)[2])-1)]
+
+# Part 1
+SNP_merged_test_1 <- cbind(IDs, SNP_merged_test_1, FACS_info)
+
+# Part 2
+SNP_merged_test_1 <- cbind(IDs, SNP_merged_test_2, FACS_info)
+rm(SNP_merged_test_2)
+
+# Part 3
+SNP_merged_test_1 <- cbind(IDs, SNP_merged_test_3, FACS_info)
+
+SNP_merged_test_Twin1 <- SNP_merged_test_1[!duplicated(SNP_merged_test_1[, 2])]  # Separate the twins out, one in group 1
+SNP_merged_test_Twin2 <- SNP_merged_test_1[duplicated(SNP_merged_test_1[, 2])]  # The other in group 2
+
+SNP_merged_test_Twin1 <- SNP_merged_test_Twin1[, grep("ID", colnames(SNP_merged_test_Twin1)):=NULL]
+SNP_merged_test_Twin2 <- SNP_merged_test_Twin2[, grep("ID", colnames(SNP_merged_test_Twin2)):=NULL]
+
 
 ##### Adding additional age information to the datasets #####
 
@@ -36,6 +86,34 @@ twins_data_demographics <- base::data.frame(twins_data_metabolomics_raw$PublicID
 colnames(twins_data_demographics) <- c("PublicID", "BirthYear")
 twins_data_demographics$BirthYear <- lubridate::dmy(twins_data_demographics$BirthYear)
 twins_data_demographics$BirthYear <- format(as.Date(twins_data_demographics[["BirthYear"]]), "%Y")
+twins_data_demographics$BirthYear <- twins_data_demographics$BirthYear - 2012
+twins_data_demographics$YearOfTest <- 2012
+twins_data_demographics$Age <- twins_data_demographics$YearOfTest - as.numeric(twins_data_demographics$BirthYear)
+
+ggplot(data=twins_data_demographics, aes(twins_data_demographics$Age)) + 
+  geom_histogram(breaks=seq(45, 90, by = 1), 
+                 col="black", 
+                 fill="red", 
+                 alpha = .2) + 
+  labs(title="Histogram for Age") +
+  labs(x="Age", y="Count") +
+  theme(# Lengends to the top
+    legend.position = "none",
+    # Remove the y-axis
+    axis.title.y = element_blank(),
+    # Remove panel border
+    panel.border = element_blank(),
+    # Remove panel grid lines
+    panel.grid.major.x = element_blank(),
+    # explicitly set the horizontal lines (or they will disappear too)
+    panel.grid.major.y = element_line(size = .25, color = "black"),
+    panel.grid.minor = element_blank(),
+    # Remove panel background
+    panel.background = element_blank(),
+    # Rotate the x-axis labels 0 degrees
+    axis.text.x = element_text(angle = 0, hjust = 0))
+
+ks.test(twins_data_demographics$Age, pnorm)
 
 # Remove duplicates from the list
 twins_data_demographics <- twins_data_demographics[!base::duplicated(twins_data_demographics$PublicID), ]
@@ -208,7 +286,6 @@ require(pROC)
 rf.roc <- roc(twins_data_glycomics$age_at_test, optimal_gly_model$votes[,2])
 plot(rf.roc)
 auc(rf.roc)
-
 
 # Then plot the top 25 most important variables across the random forests
 optimal_gly_model$variable.importance %>% 

@@ -51,17 +51,12 @@ twins_data_met_dob[is.na(twins_data_met_dob)] <- 0
 twins_data_met_dob <- mutate_all(twins_data_met_dob, function(x) as.numeric(as.character(x)))
 
 # Generate the random forest
-rf_gly_1 <- randomForest(age_at_test ~ ., 
-                         data = twins_data_gly_dob, importance = T)  
-rf_met_1 <- randomForest(age_at_test ~ ., 
-                         data = twins_data_met_dob, importance = T)
-tune <- tuneRF(twins_data_gly_dob, y = 
-                 as.factor(twins_data_gly_dob$age_at_test), doBest = T)
+rf_gly_1 <- randomForest(age_at_test ~ ., data = twins_data_gly_dob, importance = T)  
+rf_met_1 <- randomForest(age_at_test ~ ., data = twins_data_met_dob, importance = T)
+tune <- tuneRF(twins_data_gly_dob, y = as.factor(twins_data_gly_dob$age_at_test), doBest = T)
 
-rf_gly_2 <- randomForest(as.factor(
-  age_at_test) ~ ., data = twins_data_gly_dob, importance = T)
-rf_gly_smol <- randomForest(as.factor(
-  age_at_test) ~ ., data = twins_data_gly_dob, importance = T, nodesize = 1500)
+rf_gly_2 <- randomForest(as.factor(age_at_test) ~ ., data = twins_data_gly_dob, importance = T)
+rf_gly_smol <- randomForest(as.factor(age_at_test) ~ ., data = twins_data_gly_dob, importance = T, nodesize = 1500)
 
 getTree(rf, k = 1, labelVar = T)
 getTree(rf_gly_2, k = 1, labelVar = T)

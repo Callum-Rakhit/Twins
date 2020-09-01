@@ -87,7 +87,9 @@ m2 <- randomForest::tuneRF(
   stepFactor = 1.5,
   improve = 0.01,
   trace = T  # show real-time progress
-)
+)r
+
+# registerDoParallel
 
 # Split the glycomics data into training and test sets
 # Twins1_SNPs_fcell_split <- rsample::initial_split(SNP_merged_test_Twin1, prop = 0.8)
@@ -106,7 +108,7 @@ gc()
 h2o.init(max_mem_size = "16G", nthreads = -1)
 
 # Use all cores
-# registerDoParallel(parallel::detectCores())
+# (parallel::detectCores())
 
 # Turn training set into h2o object (slow)
 # train.h2o <- as.h2o(Twins1_SNPs_fcell_train)

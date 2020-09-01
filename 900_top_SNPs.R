@@ -1,47 +1,91 @@
-##### Install required libraries
-
+# Function to install packages
 GetPackages <- function(required.packages) {
   packages.not.installed <- required.packages[!(required.packages %in% installed.packages()[, "Package"])]
   if(length(packages.not.installed)){install.packages(packages.not.installed, dependencies = T)}
   suppressMessages(lapply(required.packages, require, character.only = T))
 }
 
-GetPackages(c("tidyverse", "randomForest", "dplyr", "igraph", "caret", "reshape", "rsample",
-              "reshape2", "devtools", "PerformanceAnalytics", "ggplot2", "lubridate",
-              "bootstrap", "corrplot", "ggraph", "doParallel", "ranger", "data.table", "h2o",
-              "sparsio"))
+update.packages()
 
-twin1_1 <- as.data.frame(Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*1-4_SNP_merged_train_Twin1*"))
-twin1_1$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*1-4_SNP_merged_train_Twin1*")` <- as.character(twin1_1$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*1-4_SNP_merged_train_Twin1*")`)
+# List the library paths
+# The issue is likely to be in the first directory
+paths = .libPaths()
+
+## Try and detect bad files
+list.files(paths, 
+           pattern = "^00LOCK*|*\\.rds$|*\\.RDS$",
+           full.names = T)
+
+## List files of size 0
+l = list.files(paths, full.names = T)
+l[sapply(l, file.size) == 0]
+
+
+# Install required packages
+required.packages <- c("tidyverse", "randomForest", "dplyr", "igraph", "caret", "reshape", "rsample", "reshape2",
+                       "devtools", "PerformanceAnalytics", "ggplot2", "lubridate", "bootstrap", "corrplot",
+                       "ggraph", "doParallel", "ranger", "data.table", "h2o", "sparsio", "lattice", "rsnps")
+
+GetPackages(required.packages)
+
+install.packages("tidyverse")
+install.packages("rsnps")
+library(tidyverse)
+library(rsnps)
+
+# Get filenames for first twins and individuals without a twin
+twin1_1 <- as.data.frame(Sys.glob(
+  paths = "~/Documents/twins_ML_project/plink/ML_project/*1-4_SNP_merged_train_Twin1*"))
+twin1_1$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*1-4_SNP_merged_train_Twin1*")` <- as.character(
+  twin1_1$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*1-4_SNP_merged_train_Twin1*")`)
 colnames(twin1_1) <- c("Twin1")
-twin1_2 <- as.data.frame(Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*5-10_SNP_merged_train_Twin1*"))
-twin1_2$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*5-10_SNP_merged_train_Twin1*")` <- as.character(twin1_2$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*5-10_SNP_merged_train_Twin1*")`)
+
+twin1_2 <- as.data.frame(Sys.glob(
+  paths = "~/Documents/twins_ML_project/plink/ML_project/*5-10_SNP_merged_train_Twin1*"))
+twin1_2$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*5-10_SNP_merged_train_Twin1*")` <- as.character(
+  twin1_2$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*5-10_SNP_merged_train_Twin1*")`)
 colnames(twin1_2) <- c("Twin1")
-twin1_3 <- as.data.frame(Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*11-22_SNP_merged_train_Twin1*"))
-twin1_3$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*11-22_SNP_merged_train_Twin1*")` <- as.character(twin1_3$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*11-22_SNP_merged_train_Twin1*")`)
+
+twin1_3 <- as.data.frame(Sys.glob(
+  paths = "~/Documents/twins_ML_project/plink/ML_project/*11-22_SNP_merged_train_Twin1*"))
+twin1_3$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*11-22_SNP_merged_train_Twin1*")` <- as.character(
+  twin1_3$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*11-22_SNP_merged_train_Twin1*")`)
 colnames(twin1_3) <- c("Twin1")
+
 twin_1 <- as.data.frame(rbind(twin1_1, twin1_2, twin1_3))
 
-twin2_1 <- as.data.frame(Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*1-4_SNP_merged_test_Twin2*"))
-twin2_1$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*1-4_SNP_merged_test_Twin2*")` <- as.character(twin2_1$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*1-4_SNP_merged_test_Twin2*")`)
+# Get filenames for second twins and individuals without a twin
+twin2_1 <- as.data.frame(Sys.glob(
+  paths = "~/Documents/twins_ML_project/plink/ML_project/*1-4_SNP_merged_test_Twin2*"))
+twin2_1$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*1-4_SNP_merged_test_Twin2*")` <- as.character(
+  twin2_1$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*1-4_SNP_merged_test_Twin2*")`)
 colnames(twin2_1) <- c("Twin2")
-twin2_2 <- as.data.frame(Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*5-10_SNP_merged_test_Twin2*"))
-twin2_2$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*5-10_SNP_merged_test_Twin2*")` <- as.character(twin2_2$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*5-10_SNP_merged_test_Twin2*")`)
+
+twin2_2 <- as.data.frame(Sys.glob(
+  paths = "~/Documents/twins_ML_project/plink/ML_project/*5-10_SNP_merged_test_Twin2*"))
+twin2_2$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*5-10_SNP_merged_test_Twin2*")` <- as.character(
+  twin2_2$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*5-10_SNP_merged_test_Twin2*")`)
 colnames(twin2_2) <- c("Twin2")
-twin2_3 <- as.data.frame(Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*11-22_SNP_merged_test_Twin2*"))
-twin2_3$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*11-22_SNP_merged_test_Twin2*")` <- as.character(twin2_3$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*11-22_SNP_merged_test_Twin2*")`)
+
+twin2_3 <- as.data.frame(Sys.glob(
+  paths = "~/Documents/twins_ML_project/plink/ML_project/*11-22_SNP_merged_test_Twin2*"))
+twin2_3$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*11-22_SNP_merged_test_Twin2*")` <- as.character(
+  twin2_3$`Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*11-22_SNP_merged_test_Twin2*")`)
 colnames(twin2_3) <- c("Twin2")
+
 twin_2 <- as.data.frame(rbind(twin2_1, twin2_2, twin2_3))
 
-files <- as.data.frame(Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*top100*"))
+# Load in the SNP files
+files <- as.data.frame(Sys.glob(paths = "~/Documents/twins_ML_project/plink/ML_project/*top100.*"))
 files$Twin1 <- twin_1
 files$Twin2 <- twin_2
 colnames(files) <- c("top100", "Twin1", "Twin2")
 files$top100 <- as.character(files$top100)
+
+# Remove unwanted data
 rm(list = ls(pattern = "^twin")) 
 
-# rs2071348
-
+# Select the top SNPs
 SNPselector <- function(files){
   top_100 <- read.csv(file = files[,1][1], header = T, stringsAsFactors = F)
   top_100[nrow(top_100) + 1,] <- c("geom_mean_FCFACS")
@@ -59,6 +103,8 @@ SNPselector <- function(files){
     SNPs_and_FACS_test_Twin2_filtered <<- cbind(SNPs_and_FACS_test_Twin2_filtered, SNPs_and_FACS_test_Twin2_filtered_i)
   }
 }
+
+SNPselector(files)
 
 FACS_data <- rbind(SNPs_and_FACS_train_Twin1_filtered, SNPs_and_FACS_test_Twin2_filtered)
 
@@ -79,9 +125,9 @@ output <- ggplot(FACS_data, aes(x = geom_mean_FCFACS)) +
     # Remove panel background
     panel.background = element_blank())
 
-ggsave("~/Dropbox/STP/MSc Bioinformatics/MSc Project/FACS_Fcell_histogram.pdf", output, width = 16*0.75, height = 9*0.75)
+output
 
-SNPselector(files)
+ggsave("~/Dropbox/STP/MSc Bioinformatics/MSc Project/FACS_Fcell_histogram.pdf", output, width = 16*0.75, height = 9*0.75)
 
 rm(list = c("SNPs_and_FACS_Twins1", "SNPs_and_FACS_Twins2", "top_100", "files"))
 gc()
@@ -92,6 +138,7 @@ saveRDS(SNPs_and_FACS_test_Twin2_filtered, file = "~/Documents/twins_ML_project/
 SNPs_and_FACS_train_Twin1_filtered.rds <- readRDS(file = "~/Documents/twins_ML_project/plink/ML_project/SNPs_and_FACS_train_Twin1_filtered.rds")
 SNPs_and_FACS_test_Twin2_filtered.rds <- readRDS(file = "~/Documents/twins_ML_project/plink/ML_project/SNPs_and_FACS_test_Twin2_filtered.rds")
 
+# Determine the best mtry value to use in the later analysis
 m2 <- randomForest::tuneRF(
   x = SNPs_and_FACS_train_Twin1_filtered,
   y = SNPs_and_FACS_train_Twin1_filtered$geom_mean_FCFACS,
@@ -103,6 +150,13 @@ m2 <- randomForest::tuneRF(
 )
 
 saveRDS(m2, file = "~/Documents/twins_ML_project/plink/ML_project/mtry_testing_900SNPs.rds")
+
+m3 <- readRDS(file = "~/Documents/twins_ML_project/plink/ML_project/mtry_testing_900SNPs.rds")
+lines(m3$mtry, m3$OOBError)
+m3 <- as.data.frame(m3)
+m3[2,]
+
+plot(m3)
 
 # Split the glycomics data into training and test sets
 # Twins1_SNPs_fcell_split <- rsample::initial_split(SNP_merged_test_Twin1, prop = 0.8)
@@ -185,10 +239,12 @@ grid_900 <- h2o.grid(
 )
 
 # Save the model locally
-saveRDS(object = grid_900, file = "~/Documents/twins_ML_project/plink/ML_project/rf_900.rds")
+# h2o.saveModel(object = grid_900, path = "~/Documents/twins_ML_project/plink/ML_project/20191122_rf_900")
+# saveRDS(object = grid_900, file = "~/Documents/twins_ML_project/plink/ML_project/rf_900.rds")
+# grid_900 <- h2o.loadModel
 
 # Load model
-grid <- readRDS("~/Documents/twins_ML_project/plink/ML_project/rf_900.rds")
+# grid <- readRDS("~/Documents/twins_ML_project/plink/ML_project/rf_900.rds")
 
 # Collect the results and sort by our model performance metric of choice
 best_grid <- h2o.getGrid(
@@ -196,6 +252,8 @@ best_grid <- h2o.getGrid(
   sort_by = "mse",
   decreasing = F
 )
+
+saveRDS(object = best_grid, file = "~/Documents/twins_ML_project/plink/ML_project/rf_900_bestgrid.rds")
 
 # Print results
 print(best_grid)
@@ -206,8 +264,11 @@ plot(best_grid@summary_table[["ntrees"]], best_grid@summary_table[["mse"]])
 plot(best_grid@summary_table[["sample_rate"]], best_grid@summary_table[["mse"]])
 
 # Get the model_id for the top model, chosen by validation error
+# best_model_id <- grid@model_ids[[1]]
 best_model_id <- best_grid@model_ids[[1]]
 best_model <- h2o.getModel(best_model_id)
+
+saveRDS(object = best_grid, file = "~/Documents/twins_ML_project/plink/ML_project/rf_900_bestmodel.rds")
 
 # Evaluate the model performance on a test set
 best_model_performance <- h2o.performance(model = best_model, newdata = test.h2o)
@@ -240,20 +301,17 @@ as.data.frame(best_model@model[["variable_importances"]]) %>%
 
 best_model@model[["variable_importances"]]
 
+rf_1_top_100_predictors[,1]
+
 rf_1_top_100_predictors <- rf_1_top_100_predictors[,1]
 
 View(rf_1_top_100_predictors)
 
 rf_1_top_100_predictors == "rs2071348"
 
-write_csv(x = as.data.frame(rf_1_top_100_predictors), path = "~/Documents/twins_ML_project/plink/ML_project/rf_900_top100.csv")
+write_csv(x = as.data.frame(rf_1_top_100_predictors), path = "~/Documents/twins_ML_project/plink/ML_project/rf_900_top100_alt.csv")
 
 h2o.shutdown(prompt = F)  # Shuts down the Java cluster
-
-install.packages("randomForestExplainer")
-library(randomForestExplainer)
-
-??randomForestExplainer
 
 plot_multi_way_importance(best_model@model[["variable_importances"]][["variable"]], 
                           x_measure = best_model@model[["variable_importances"]][["scaled_importance"]], 
@@ -261,33 +319,51 @@ plot_multi_way_importance(best_model@model[["variable_importances"]][["variable"
                           size_measure = best_model@model[["variable_importances"]][["percentage"]], 
                           no_of_labels = 5)
 
-install.packages("rsnps")
+# Get a list of the SNPs, relative importance and their locations
+SNP_list <- as.data.frame(gsub('.{2}$', '', noquote(best_model@model[["variable_importances"]][["variable"]])))
+colnames(SNP_list) <- c("rsID")
+SNP_list$relative_importance <- gsub('.{2}$', '', noquote(best_model@model[["variable_importances"]][["relative_importance"]]))
+SNP_list$location <- "1"
+SNP_list$top_relevant_publication <- "1"
 
-library(rsnps)
-annotations(snp = 'rs766432', output = 'all')
-ncbi_snp_query2(SNPs = "rs332")
-ncbi_snp_query2("rs766432")
-ncbi_snp_summary("rs420358")
+lapply(1:length(SNP_list$location), function(i){
+  SNP_location <- annotations(snp = SNP_list$rsID[i], output = 'metadata')
+  ifelse(dim(SNP_location)[1] == 0,
+         SNP_list$location[i] <<- paste("Not Found"),
+         SNP_list$location[i] <<- paste(SNP_location[2,][2], ":", SNP_location[3,][2], sep = "")
+         )
+  }
+)
 
-rs766432
-rs9399137
+SNP_publication <- annotations(snp = SNP_list$rsID[850], output = 'all')
+dim(SNP_publication)[1] == 0
+SNP_publication$title[1]
 
-SNPs <- as.data.frame(gsub('.{2}$', '', noquote(best_model@model[["variable_importances"]][["variable"]])))
-SNPs
-View(SNPs)
+lapply(1:length(SNP_list$location), function(i){
+  SNP_publication <- annotations(snp = SNP_list$rsID[i], output = 'all')
+  ifelse(dim(SNP_publication)[1] == 0,
+         SNP_list$top_relevant_publication[i] <<- paste("Not Found"),
+         SNP_list$top_relevant_publication[i] <<- SNP_publication$title[1]
+         )
+  }
+)
 
+write_csv(x = SNP_list, path = "~/Desktop/SNP_list.csv", col_names = T)
+
+# This one may work better for getting locations
+BiocManager::install()
+library(BiocManager)
 install.packages("BiocManager")
 BiocManager::install("biomaRt")
 library(biomaRt)
 
 snp_mart <- useMart("ENSEMBL_MART_SNP", dataset = "hsapiens_snp")
 
-snp_ids <- c("rs16828074", "rs17232800")
 snp_ids <- SNPs$`gsub(".{2}$", "", noquote(best_model@model[["variable_importances"]][["variable"]]))`
 
 snp_attributes <- c("refsnp_id", "chr_name", "chrom_start")
 
-snp_locations <- getBM(attributes = snp_attributes, filters = "snp_filter", values = snp_ids, mart = snp_mart)
+snp_locations <- getBM(attributes = snp_attributes, filters = "snp_filter", values = SNP_list$rsID, mart = snp_mart)
 
 manhatten <- as.data.frame(snp_locations)
 
@@ -305,60 +381,16 @@ options(scipen = 999)
 
 View(reorder(x = SNPs$chrom_start, X = SNPs$chr_name))
 
-ggplot(SNPs, aes(x = reorder(x = SNPs$chrom_start, X = SNPs$chr_name), y = SNPs$variable.importance)) +
-  
-  # Show all points
-  geom_point(aes(color = as.factor(SNPs$chr_name)), alpha = 0.8, size = 1.3) +
-  # scale_color_manual(values = rep(c("grey", "skyblue"), 24)) +
-  
-  # custom X axis:
-  # scale_x_continuous(label = SNPs$chr_name, breaks= SNPs$chr_name) +
-  # scale_y_continuous(expand = c(0, 0) ) +     # remove space between plot area and x axis
-  # ylim(0, 9) +
-  
-  # Add highlighted points
-  # geom_point(data=subset(don, is_highlight=="yes"), color="orange", size=2) +
-  
-  # Custom the theme:
-  theme_bw() +
-  theme( 
-    legend.position="none",
-    panel.border = element_blank(),
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor.x = element_blank()
-)
+annotations(snp = 'rs766432', output = 'all')
 
-class(SNPs$chr_name)
-class(SNPs$chrom_start)
-class(SNPs$variable.importance)
+SNP_info <- annotations(snp = SNP_list$rsID[1], output = 'all')
+SNP_info$title[1]
 
-ggplot(SNPs) + 
-  geom_point(aes(
-    reorder(x = SNPs$chrom_start, X = SNPs$chr_name), 
-    y = variable.importance, 
-    color = as.factor(SNPs$chr_name)
-    )) +
-  # scale_x_continuous(label = SNPs$chr_name, breaks= SNPs$chr_name) +
-  theme(
-    # Lengends to the top
-    legend.position = "none",
-    # Remove the y-axis
-    # axis.title.y = element_blank(),
-    # Remove panel border
-    panel.border = element_blank(),
-    # Remove panel grid lines
-    panel.grid.major.x = element_blank(),
-    axis.text.x = element_blank(),
-    axis.ticks.x = element_blank(),
-    # explicitly set the horizontal lines (or they will disappear too)
-    panel.grid.major.y = element_line(size = .25, color = "black"),
-    panel.grid.minor = element_blank(),
-    # Remove panel background
-    panel.background = element_blank())
+SNP_info <- annotations(snp = SNP_list$SNPs[1], output = 'metadata')
 
-class(SNPs$chrom_start)
+SNP_info <- rbind(SNP_info, annotations(snp = SNP_list$SNPs[2], output = 'all'))
 
-manhattan.plot<-function(chr, pos, pvalue, 
+manhattan.plot <- function(chr, pos, pvalue, 
                          sig.level = NA, 
                          annotate = NULL,
                          ann.default = list(),
@@ -372,9 +404,9 @@ manhattan.plot<-function(chr, pos, pvalue,
                          # col = c("blue", "lightblue"),
                          panel.extra = NULL, pch = 20, cex = 0.8,...) {
   
-  if (length(chr)==0) stop("chromosome vector is empty")
-  if (length(pos)==0) stop("position vector is empty")
-  if (length(pvalue)==0) stop("pvalue vector is empty")
+  if (length(chr) == 0) stop("chromosome vector is empty")
+  if (length(pos) == 0) stop("position vector is empty")
+  if (length(pvalue) == 0) stop("pvalue vector is empty")
   
   # make sure we have an ordered factor
   if(!is.ordered(chr)) {
@@ -407,7 +439,7 @@ manhattan.plot<-function(chr, pos, pvalue,
     if(is.logical(rawval)) {
       if(!rawval) {r$show <- F}
     } else if (is.character(rawval) || is.expression(rawval)) {
-      if(nchar(rawval)>=1) {
+      if(nchar(rawval) >= 1) {
         r$text <- rawval
       }
     } else if (is.list(rawval)) {
@@ -433,29 +465,29 @@ manhattan.plot<-function(chr, pos, pvalue,
   ann.settings[[1]]<-list(pch=pch, col=col, cex=cex, fill=col, label=label.default)
   
   if (length(ann.settings)>1) { 
-    lcols<-trellis.par.get("superpose.symbol")$col 
-    lfills<-trellis.par.get("superpose.symbol")$fill
+    lcols <- trellis.par.get("superpose.symbol")$col 
+    lfills <- trellis.par.get("superpose.symbol")$fill
     for(i in 2:length(levels(grp))) {
-      ann.settings[[i]]<-list(pch=pch, 
-                              col=lcols[(i-2) %% length(lcols) + 1 ], 
-                              fill=lfills[(i-2) %% length(lfills) + 1 ], 
-                              cex=cex, label=label.default);
+      ann.settings[[i]]<-list(pch = pch, 
+                              col = lcols[(i-2) %% length(lcols) + 1 ], 
+                              fill = lfills[(i-2) %% length(lfills) + 1 ], 
+                              cex = cex, label=label.default);
       ann.settings[[i]]$label$show <- T
     }
-    names(ann.settings)<-levels(grp)
+    names(ann.settings) <- levels(grp)
   }
   for(i in 1:length(ann.settings)) {
-    if (i>1) {ann.settings[[i]] <- modifyList(ann.settings[[i]], ann.default)}
+    if (i > 1) {ann.settings[[i]] <- modifyList(ann.settings[[i]], ann.default)}
     ann.settings[[i]]$label <- modifyList(ann.settings[[i]]$label, 
                                           parse.label(ann.settings[[i]]$label, levels(grp)[i]))
   }
-  if(is.list(annotate) && length(annotate)>1) {
+  if(is.list(annotate) && length(annotate) > 1) {
     user.cols <- 2:length(annotate)
     ann.cols <- c()
-    if(!is.null(names(annotate[-1])) && all(names(annotate[-1])!="")) {
+    if(!is.null(names(annotate[-1])) && all(names(annotate[-1]) != "")) {
       ann.cols<-match(names(annotate)[-1], names(ann.settings))
     } else {
-      ann.cols<-user.cols-1
+      ann.cols<-user.cols - 1
     }
     for(i in seq_along(user.cols)) {
       if(!is.null(annotate[[user.cols[i]]]$label)) {
@@ -491,18 +523,18 @@ manhattan.plot<-function(chr, pos, pvalue,
   
   # custom axis to print chromosome names
   axis.chr <- function(side,...) {
-    if(side=="bottom") {
-      panel.axis(side=side, outside=T,
-                 at=((posmax+posmin)/2+posshift),
-                 labels=levels(chr), 
-                 ticks=F, rot=0,
-                 check.overlap=F
+    if(side == "bottom") {
+      panel.axis(side = side, outside = T,
+                 at = ((posmax+posmin)/2+posshift),
+                 labels = levels(chr), 
+                 ticks = F, rot = 0,
+                 check.overlap = F
       )
-    } else if (side=="top" || side=="right") {
-      panel.axis(side=side, draw.labels=F, ticks=F);
+    } else if (side == "top" || side == "right") {
+      panel.axis(side = side, draw.labels = F, ticks = F);
     }
     else {
-      axis.default(side=side,...);
+      axis.default(side = side,...);
     }
   }
   
@@ -515,13 +547,13 @@ manhattan.plot<-function(chr, pos, pvalue,
     A;
   }
   
-  xyplot(logp~genpos, chr=chr, groups=grp,
+  xyplot(logp~genpos, chr = chr, groups = grp,
          axis = axis.chr, ann.settings=ann.settings, 
          prepanel = prepanel.chr, scales=list(axs="i"),
          panel = function(x, y, ..., getgenpos) {
            if(!is.na(sig.level)) {
              # add significance line (if requested)
-             panel.abline(h=-log10(sig.level), lty=2);
+             panel.abline(h = -log10(sig.level), lty=2);
            }
            panel.superpose(x, y, ..., getgenpos=getgenpos);
            if(!is.null(panel.extra)) {
@@ -542,27 +574,27 @@ manhattan.plot<-function(chr, pos, pvalue,
            #draw labels (if requested)
            if(gs$label$show) {
              gt<-gs$label
-             names(gt)[which(names(gt)=="text")]<-"labels"
-             gt$show<-NULL
+             names(gt)[which(names(gt) == "text")] <- "labels"
+             gt$show <- NULL
              if(is.character(gt$x) | is.character(gt$y)) {
                peak = which.max(y)
                center = mean(range(x))
                if (is.character(gt$x)) {
-                 if(gt$x=="peak") {gt$x<-x[peak]}
-                 if(gt$x=="center") {gt$x<-center}
+                 if(gt$x == "peak") {gt$x<-x[peak]}
+                 if(gt$x == "center") {gt$x<-center}
                }
                if (is.character(gt$y)) {
-                 if(gt$y=="peak") {gt$y<-y[peak]}
+                 if(gt$y == "peak") {gt$y<-y[peak]}
                }
              }
              if(is.list(gt$x)) {
-               gt$x<-A$getgenpos(gt$x[[1]],gt$x[[2]])
+               gt$x <- A$getgenpos(gt$x[[1]],gt$x[[2]])
              }
              do.call("panel.text", gt)
            }
          },
-         xlab=xlab, ylab=ylab, 
-         panel.extra=panel.extra, getgenpos=getGenPos, ...
+         xlab = xlab, ylab = ylab, 
+         panel.extra = panel.extra, getgenpos=getGenPos, ...
   );
   }
 
@@ -572,9 +604,11 @@ ann[with(SNPs, chr_name == 6)] <- 3
 ann[with(SNPs, chr_name == 11)] <- 4
 ann <- factor(ann, levels = 1:4, labels=c("", "Chromsome 2", "Chromsome 6", "Chromsome 11"))
 
-output <- manhattan.plot(factor(SNPs$chr_name, levels=c(1:22)), SNPs$chrom_start, SNPs$variable.importance, annotate = ann)
-ggsave("~/Desktop/Manhatten.pdf", output, width = 16*1, height = 9*1)
+output <- manhattan.plot(factor(SNPs$chr_name, levels = c(1:22)), SNPs$chrom_start, SNPs$variable.importance, annotate = ann)
 
+pdf("~/Desktop/Manhatten.pdf", width = 16*1.25, height = 9*1.25)
+print(output)
+dev.off()
 
 View(ann)
 
