@@ -5,20 +5,20 @@ GetPackages <- function(required.packages) {
   suppressMessages(lapply(required.packages, require, character.only = T))
 }
 
-update.packages()
-
-# List the library paths
-# The issue is likely to be in the first directory
-paths = .libPaths()
-
-## Try and detect bad files
-list.files(paths, 
-           pattern = "^00LOCK*|*\\.rds$|*\\.RDS$",
-           full.names = T)
-
-## List files of size 0
-l = list.files(paths, full.names = T)
-l[sapply(l, file.size) == 0]
+# update.packages()
+# 
+# # List the library paths
+# # The issue is likely to be in the first directory
+# paths = .libPaths()
+# 
+# ## Try and detect bad files
+# list.files(paths,
+#            pattern = "^00LOCK*|*\\.rds$|*\\.RDS$",
+#            full.names = T)
+# 
+# ## List files of size 0
+# l = list.files(paths, full.names = T)
+# l[sapply(l, file.size) == 0]
 
 
 # Install required packages
@@ -27,9 +27,10 @@ required.packages <- c("tidyverse", "randomForest", "dplyr", "igraph", "caret", 
                        "ggraph", "doParallel", "ranger", "data.table", "h2o", "sparsio", "lattice", "rsnps")
 
 GetPackages(required.packages)
-
+ 
 install.packages("tidyverse")
 install.packages("rsnps")
+install.packages("tidyverse", dependencies = T, INSTALL_opts = c('--no-lock'))
 library(tidyverse)
 library(rsnps)
 
@@ -125,12 +126,11 @@ output <- ggplot(FACS_data, aes(x = geom_mean_FCFACS)) +
     # Remove panel background
     panel.background = element_blank())
 
-output
-
-ggsave("~/Dropbox/STP/MSc Bioinformatics/MSc Project/FACS_Fcell_histogram.pdf", output, width = 16*0.75, height = 9*0.75)
+# output  # If you want a graph of the F-cell distributions
+# ggsave("~/Dropbox/STP/MSc Bioinformatics/MSc Project/FACS_Fcell_histogram.pdf", output, width = 16*0.75, height = 9*0.75)
 
 rm(list = c("SNPs_and_FACS_Twins1", "SNPs_and_FACS_Twins2", "top_100", "files"))
-gc()
+gc()  # Helps to manage PC resources
 
 saveRDS(SNPs_and_FACS_train_Twin1_filtered, file = "~/Documents/twins_ML_project/plink/ML_project/SNPs_and_FACS_train_Twin1_filtered.rds")  # Save locally as compact rds file
 saveRDS(SNPs_and_FACS_test_Twin2_filtered, file = "~/Documents/twins_ML_project/plink/ML_project/SNPs_and_FACS_test_Twin2_filtered.rds")  # Save locally as compact rds file
@@ -152,8 +152,8 @@ m2 <- randomForest::tuneRF(
 saveRDS(m2, file = "~/Documents/twins_ML_project/plink/ML_project/mtry_testing_900SNPs.rds")
 
 m3 <- readRDS(file = "~/Documents/twins_ML_project/plink/ML_project/mtry_testing_900SNPs.rds")
-lines(m3$mtry, m3$OOBError)
 m3 <- as.data.frame(m3)
+plot(m3$mtry, m3$OOBError, type = "l")
 m3[2,]
 
 plot(m3)
@@ -197,16 +197,16 @@ gc()
 # Hyperparameter grid
 hyper_grid.h2o <- list(
   ntrees = seq(101, 401, by = 50),
-  mtries = seq(250, 500, by = 50),
+  mtries = seq(251, 501, by = 50),
   sample_rate = c(.55, .6, .65, .7)
 )
 
-# Crappy hyperparameter grid
-hyper_grid.h2o <- list(
-  ntrees = 601,
-  mtries = 50000,
-  sample_rate = c(0.6)
-)
+# # Crappy hyperparameter grid based on the previous best values
+# hyper_grid.h2o <- list(
+#   ntrees = 251,
+#   mtries = 251,
+#   sample_rate = c(0.6)
+# )
 
 # Random grid search criteria
 search_criteria <- list(
@@ -238,14 +238,6 @@ grid_900 <- h2o.grid(
   search_criteria = search_criteria
 )
 
-# Save the model locally
-# h2o.saveModel(object = grid_900, path = "~/Documents/twins_ML_project/plink/ML_project/20191122_rf_900")
-# saveRDS(object = grid_900, file = "~/Documents/twins_ML_project/plink/ML_project/rf_900.rds")
-# grid_900 <- h2o.loadModel
-
-# Load model
-# grid <- readRDS("~/Documents/twins_ML_project/plink/ML_project/rf_900.rds")
-
 # Collect the results and sort by our model performance metric of choice
 best_grid <- h2o.getGrid(
   grid_id = "rf_grid_900", 
@@ -253,7 +245,130 @@ best_grid <- h2o.getGrid(
   decreasing = F
 )
 
-saveRDS(object = best_grid, file = "~/Documents/twins_ML_project/plink/ML_project/rf_900_bestgrid.rds")
+model_1 <- h2o.randomForest(
+  x = x, 
+  y = y,
+  ntrees = 251,
+  mtries = 251,
+  sample_rate = c(0.6),
+  training_frame = train.h2o,
+  # calibrate_model = T,
+  # calibration_frame = test.h2o
+)
+
+saveRDS(object = model_1, file = "~/Twins/Models/model_1.rds")
+
+# Save the model locally
+h2o.saveModel(object = model_1, path = "~/Twins/Models/Model_1")
+performance_fcell_twins <- h2o.performance(model_1)
+
+test_88 <- as.data.frame(test.h2o)
+test_88 <- test_88[1:88,]
+
+data.table::fwrite(x = test_88, file = "~/Twins/Data/test_88.csv")
+test_88.h2o <- h2o.importFile(path = "/home/callumrakhit/Twins/Data/test_88.csv")
+
+predicted_fcell_twins <- h2o.predict(model_1, test.h2o)
+predicted_fcell_twins_88 <- h2o.predict(model_1, test_88.h2o)
+
+saveRDS(object = model_1, file = "~/Documents/twins_ML_project/plink/ML_project/model_1.rds")
+model_1 <- h2o.loadModel
+model_1
+which(colnames(SNPs_and_FACS_test_Twin2_filtered.rds)=="geom_mean_FCFACS")
+
+plot(as.data.frame(predicted_fcell_twins)[,1], as.data.frame(SNPs_and_FACS_test_Twin2_filtered.rds[,101])[,1])
+
+plot(as.data.frame(predicted_fcell_twins_88)[,1], as.data.frame(SNPs_and_FACS_test_Twin2_filtered.rds[,101])[,1][1:88])
+
+for_plot <- as.data.frame(cbind(as.data.frame(predicted_fcell_twins_88)[,1], as.data.frame(SNPs_and_FACS_test_Twin2_filtered.rds[,101])[,1][1:88]))
+
+ggplot(data = for_plot, aes(x = V1, y = V2)) +
+  geom_point() +
+  geom_smooth(method = "loess") +
+  theme_minimal() +
+  xlab("Predicted") +
+  ylab("Observed")
+
+
+
+as.data.frame(predicted_fcell_twins_88)[,1]
+
+as.data.frame(predicted_fcell_twins)[,1]
+as.data.frame(SNPs_and_FACS_test_Twin2_filtered.rds[,101])[,1]
+# Load model
+# grid <- readRDS("~/Documents/twins_ML_project/plink/ML_project/rf_900.rds")
+
+## Load in new disease data2
+library(data.table)
+
+Dataset_2 <- readRDS(file = "~/Twins/Data/Dataset_2.rds")
+names(Dataset_2) <- gsub("JHU_1.", "rs", names(Dataset_2))
+names(Dataset_2) <- gsub("exm", "rs", names(Dataset_2))
+names(Dataset_2) <- gsub("1:", "rs", names(Dataset_2))
+names(Dataset_2) <- gsub("-T", "", names(Dataset_2))
+names(Dataset_2) <- gsub("-C", "", names(Dataset_2))
+names(Dataset_2) <- gsub("-G", "", names(Dataset_2))
+names(Dataset_2) <- gsub("-A", "", names(Dataset_2))
+test <- subset(Dataset_2, select = colnames(SNPs_and_FACS_train_Twin1_filtered.rds))
+hist(Dataset_2[,98269]$geom_mean_FCFACS, breaks = 100)
+
+names(Dataset_2)
+
+Dataset_2 %>% filter(names(Dataset_2) %in% names(SNPs_and_FACS_train_Twin1_filtered.rds))
+
+names(SNPs_and_FACS_train_Twin1_filtered.rds) %in% names(Dataset_2)
+
+names(SNPs_and_FACS_train_Twin1_filtered.rds)
+names(Dataset_2)
+
+class(names(SNPs_and_FACS_train_Twin1_filtered.rds))
+class(names(Dataset_2))
+
+colnames(Dataset_2)
+Dataset_2$rs67765457_A
+colnames(SNPs_and_FACS_train_Twin1_filtered.rds)
+setDT(Dataset_2)[]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Print results
 print(best_grid)
